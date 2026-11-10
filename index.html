@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kar-Veil — Redaction Integrity Prover</title>
-<meta name="description" content="Prove a redacted document is a faithful, unaltered partial view of a specific committed original — without ever revealing what was redacted. One sovereign HTML file, no server, no LLM judge, runs offline.">
+<meta name="description" content="Prove a redacted document is a faithful, unaltered partial view of a specific committed original — without ever revealing what was redacted. One page, no server, no LLM judge, runs offline. Version 2: line count bound into the root, every line salted.">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -194,6 +194,32 @@
     .row-kv{flex-direction:column;}
     .row-kv .v{text-align:left;}
   }
+
+  /* v2 additions */
+  nav.toc{margin-top:.8em;font-size:.85rem;line-height:1.9;color:var(--text-faint);}
+  nav.toc a{color:var(--accent);text-decoration:none;}
+  .v2-note{border:1px solid var(--accent-dim);background:rgba(95,208,167,.08);border-radius:8px;padding:12px 14px;margin:0 0 1.2em;color:var(--text);font-size:.92rem;}
+  .v2-note a, section a{color:var(--accent);}
+  ol.steps{padding-left:1.3em;color:var(--text-dim);} ol.steps li{margin-bottom:.7em;} ol.steps b{color:var(--text);}
+  b.ok{color:var(--good);} b.mid{color:var(--warn);} b.no{color:var(--bad);}
+  .k-label{font-size:.82rem;color:var(--text-dim);margin:.9em 0 .35em;font-weight:600;}
+  .hash-box.secret{border-color:#7a651f;}
+  .warnings{margin:8px 0 0;padding-left:1.2em;color:var(--warn);font-size:.88rem;} .warnings li{margin-bottom:.4em;}
+  .verdict.consistent{background:rgba(224,176,74,.12);color:var(--warn);border:1px solid #7a651f;}
+  .tablewrap{overflow-x:auto;margin:.8em 0;}
+  table.t{border-collapse:collapse;width:100%;font-size:.86rem;}
+  table.t th, table.t td{border-bottom:1px solid var(--border);padding:7px 8px;text-align:left;vertical-align:top;color:var(--text-dim);}
+  table.t th{color:var(--text);font-weight:600;}
+  figure.diagram{margin:1em 0;background:var(--bg-inset);border:1px solid var(--border);border-radius:8px;padding:10px;}
+  .d-root{fill:rgba(95,208,167,.15);stroke:var(--accent);} .d-node{fill:var(--bg-raised);stroke:var(--border);}
+  .d-leaf{fill:var(--bg-raised);stroke:var(--accent-dim);} .d-hid{fill:rgba(224,102,95,.12);stroke:var(--bad);}
+  .d-t{fill:var(--text);} .d-s{fill:var(--text-faint);font-size:10.5px;} .d-l{stroke:var(--text-faint);stroke-width:1.2;}
+  .roles p{color:var(--text-dim);margin:.5em 0;} .roles b{color:var(--text);}
+  .case-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 16px;margin:.8em 0;}
+  .case-form label{font-weight:500;} .case-form input{width:100%;margin-top:.3em;}
+  input[type=number]{background:var(--bg-inset);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font:inherit;box-sizing:border-box;}
+  .case-big{font-size:1.05rem;color:var(--text);font-weight:600;}
+  #business h3{margin-top:1.6em;}
 </style>
 </head>
 <body>
@@ -202,71 +228,95 @@
   <div class="wrap">
     <p class="eyebrow">FallForge · provable / accountable AI</p>
     <h1>Kar-Veil</h1>
-    <p class="tagline">Prove a redacted document is a faithful, untouched view of a specific committed original — without the verifier ever seeing what was hidden. One file, no server, no AI judging anything.</p>
+    <p class="tagline">Prove a redacted document is a faithful, untouched view of a specific committed original, without the verifier ever seeing what was hidden. One page, no server, no AI judging anything.</p>
+    <nav class="toc"><a href="#start">Start here</a> · <a href="#commit">Use it</a> · <a href="#demo">Attack it</a> · <a href="#v2">What changed in v2</a> · <a href="#how">How it works</a> · <a href="#blueprint">Blueprint</a> · <a href="#adoption">Roll it out</a> · <a href="#business">For a business</a> · <a href="#faq">FAQ</a></nav>
   </div>
 </header>
 
 <section id="intro">
   <div class="wrap">
+    <div class="v2-note"><strong>Version 2, 10 November 2026.</strong> On 5 November a probe of the version this page had run since
+      26 September found two faults in it: hidden lines could be folded together and the proof still matched, and a hidden
+      line that someone could guess could be confirmed from its hash. Both are closed in v2, and measured on 400 documents
+      below (<a href="#v2">what changed</a>). Proofs made before then still check, and every one of them now names both faults.</div>
     <h2>What this is</h2>
-    <p>
-      When an AI (or a person) redacts a document — blacking out names, case numbers, health details, source
-      material — there is normally no way for anyone downstream to check that <em>only</em> the declared parts
-      were touched. Maybe a redaction tool also silently rewrote a sentence. Maybe an extra line quietly
-      vanished. Kar-Veil turns that into something anyone can check by recomputation, not by trusting the redactor's word.
-    </p>
-    <p>
-      You commit an original document to a single 64-character fingerprint (a Merkle root) <strong>before</strong>
-      any redaction happens. Later, whoever redacts it publishes a <strong>veil proof</strong>: the exact text of
-      every line they left visible, plus only the already-known hash of every line they hid. Anyone can recompute
-      the fingerprint from that proof and check it lands on the exact same root — with zero access to the hidden
-      content. If a visible line was quietly edited, or a line was added, dropped, or reordered, the recomputed
-      root will not match, and Kar-Veil names exactly what broke.
-    </p>
+    <p>When an AI or a person redacts a document (names, case numbers, health details, sources), the people who receive it
+      normally have no way to check that only the declared parts were touched. A redaction tool might also have rewritten a
+      sentence, or a line might have quietly gone. Kar-Veil makes that something anyone can check by recomputing, not by
+      trusting the redactor's word.</p>
+    <p>Before any redaction, you <b>commit</b> the original: Kar-Veil gives you a 64-character fingerprint (the <b>root</b>) to
+      publish, and a <b>secret</b> to keep. Later, whoever redacts it uses the original and the secret to make a <b>veil
+      proof</b>: the exact text of every line left visible, and only a hash for every hidden line. Anyone can recompute the
+      fingerprint from that proof and check it lands on the root that was published first, without seeing anything that was
+      hidden. If a visible line was edited, or a line was added, dropped, moved or folded into another, it does not land, and
+      Kar-Veil says what broke.</p>
     <h2>Honest limits</h2>
-    <ul class="limits">
-      <li>This proves <strong>structural</strong> faithfulness — that the visible parts are exactly what they claim
-        to be and nothing else changed. It says nothing about whether the redaction was legally correct or whether
-        it removed enough.</li>
-      <li>It only means something if the root was written down <strong>independently, before</strong> the
-        redaction — posted publicly, filed with a notary, committed to git, or anchored with a tool like kar-anchor.
-        Kar-Veil does not do that recording step for you.</li>
-      <li>The unit of redaction is a whole line. To redact part of a line, split the sensitive span onto its own
-        line before you commit.</li>
-      <li>It cannot verify who did the redacting or when, beyond an optional signature you supply and vouch for
-        yourself.</li>
+    <ul>
+      <li>It proves the visible parts are exactly the original's lines and nothing else changed. It says nothing about
+        whether the redaction was legally right or removed enough.</li>
+      <li>It only means something if the root was recorded somewhere independent before the redaction: posted publicly,
+        filed with a notary, committed to git. Kar-Veil does not do that recording for you.</li>
+      <li>The unit is a whole line. To hide part of a line, put the sensitive part on its own line before you commit.</li>
+      <li>A proof shows how many lines the document has and which positions are hidden.</li>
+      <li>It cannot tell you who redacted or when, beyond an optional signature you supply and vouch for yourself.</li>
+      <li>Anyone holding the secret can test guesses at hidden lines again. Keep it like a password; it is never in a proof.</li>
     </ul>
+  </div>
+</section>
+
+<section id="start">
+  <div class="wrap">
+    <h2>Start here</h2>
+    <ol class="steps">
+      <li><b>Commit the original</b> (step 1 below). Paste the full text and press Commit. Publish the <b>root</b> now,
+        somewhere you do not control alone. Save the <b>secret</b> somewhere private.</li>
+      <li><b>Redact</b> (step 2). Paste the same original and its secret, tick the lines to hide, and generate. You get the
+        redacted document and its veil proof.</li>
+      <li><b>Send both</b> to whoever needs them. They need nothing else from you.</li>
+      <li><b>They verify</b> (step 3): paste the proof and the root that was published first. The verdict is one of four:
+        <ul>
+          <li><b class="ok">VERIFIED</b>: the proof recomputes to the published root. Every visible line is the original's.</li>
+          <li><b class="mid">CONSISTENT</b>: the proof agrees with itself, but no published root was given, so it could be
+            a proof of any document. Get the root and check again.</li>
+          <li><b class="no">BREACHED</b>: well formed, but it does not land on the root (or does not match the document
+            received). Something was changed.</li>
+          <li><b class="mid">MALFORMED</b>: not a proof at all, with the reason.</li>
+        </ul></li>
+    </ol>
+    <p class="hint">Want to see it first? <a href="#demo">Attack it</a> runs nine kinds of tampering against a sample in this
+      page.</p>
   </div>
 </section>
 
 <section id="commit">
   <div class="wrap">
     <div class="step-title"><span class="step-num">1</span><h2>Commit an original</h2></div>
-    <p>Paste the full original document. It is split into lines and each line is hashed with SHA-256
-      (position-bound), then folded pairwise into one Merkle root.</p>
-    <div class="field">
-      <label for="original-doc">Original document</label>
-      <textarea id="original-doc" placeholder="Paste the full, unredacted original here — one statement/fact per line works best." spellcheck="false"></textarea>
-    </div>
+    <p>Paste the full, unredacted original. One statement per line works best. Nothing leaves this page.</p>
+    <label for="original-doc">Original document</label>
+    <textarea id="original-doc" placeholder="Paste the full, unredacted original here. One statement or fact per line works best." spellcheck="false"></textarea>
     <div class="btn-row">
       <button class="primary" id="btn-commit">Commit</button>
       <button class="ghost" id="btn-load-sample">Load a sample document</button>
     </div>
+    <p class="hint" id="commit-error" role="alert"></p>
     <div class="panel" id="commit-result" style="display:none;">
       <div class="row-kv"><span class="k">Lines</span><span class="v" id="commit-linecount"></span></div>
-      <div class="row-kv"><span class="k">Root (publish this now, before redacting)</span></div>
+      <p class="k-label">Root: publish this now, before you redact</p>
       <div class="hash-box" id="commit-root"></div>
       <div class="btn-row">
         <button id="btn-copy-root">Copy root</button>
         <button id="btn-sign-root">Sign this root (optional)</button>
       </div>
+      <p class="k-label">Secret: keep this private. You need it, with the original, to make a proof. Never share it.</p>
+      <div class="hash-box secret" id="commit-secret"></div>
+      <div class="btn-row"><button id="btn-copy-secret">Copy secret</button></div>
       <div id="sign-output" style="display:none;">
-        <div class="row-kv"><span class="k">Signature (ECDSA P-256, hex)</span></div>
+        <p class="k-label">Signature (ECDSA P-256 over the root)</p>
         <div class="hash-box" id="sign-sig"></div>
-        <div class="row-kv"><span class="k">Public key (JWK, share this to let others check the signature)</span></div>
+        <p class="k-label">Public key (JWK)</p>
         <div class="hash-box" id="sign-pub"></div>
-        <p class="hint">This key exists only in this browser tab. It proves whoever holds the private key vouched
-          for this exact root — it is not a timestamp and not an identity check.</p>
+        <p class="hint">This key was made in this tab and is gone when you close it. A signature only says that whoever held
+          this key signed this root; tying the key to a person is up to you.</p>
       </div>
     </div>
   </div>
@@ -274,34 +324,31 @@
 
 <section id="redact">
   <div class="wrap">
-    <div class="step-title"><span class="step-num">2</span><h2>Redact &amp; generate a veil proof</h2></div>
-    <p>Uses the document you just committed if there is one, or paste the original again. Tick every line you
-      want to hide, then generate the proof — it contains the full text of every other line, and only the hash of
-      the lines you ticked.</p>
-    <div class="field">
-      <label for="redact-doc-input">Original document (auto-filled from step 1)</label>
-      <textarea id="redact-doc-input" placeholder="Paste (or re-paste) the exact original text here." spellcheck="false"></textarea>
-    </div>
-    <div class="field">
-      <label for="redact-expected-root">Expected root (optional — cross-checked before proceeding)</label>
-      <input type="text" id="redact-expected-root" placeholder="64-hex root you committed to earlier">
-    </div>
+    <div class="step-title"><span class="step-num">2</span><h2>Redact and make a veil proof</h2></div>
+    <p>Paste the exact original again, with its secret. Tick the lines to hide.</p>
+    <label for="redact-doc-input">Original document</label>
+    <textarea id="redact-doc-input" placeholder="Paste (or re-paste) the exact original text here." spellcheck="false"></textarea>
+    <label for="redact-secret">Its secret (from step 1)</label>
+    <input type="text" id="redact-secret" placeholder="64 hex characters" spellcheck="false" autocomplete="off">
+    <label for="redact-expected-root">The root you published (optional, checked so a typo cannot slip through)</label>
+    <input type="text" id="redact-expected-root" placeholder="64-hex root you committed to earlier" spellcheck="false">
     <div class="btn-row">
-      <button id="btn-parse-lines">Show lines to select redactions</button>
+      <button id="btn-parse-lines">Show lines to choose what to hide</button>
     </div>
     <div class="line-list" id="redact-line-list" style="display:none;"></div>
     <div class="btn-row">
       <button class="primary" id="btn-generate-proof" disabled>Generate redacted document + proof</button>
     </div>
+    <p class="hint" id="redact-error" role="alert"></p>
     <div class="panel" id="redact-result" style="display:none;">
-      <h3 style="margin-top:0;">Redacted document (preview)</h3>
+      <h3 style="margin-top:0;">Redacted document</h3>
       <pre class="preview" id="redacted-preview"></pre>
-      <h3>Veil proof (share this with whoever needs to verify)</h3>
+      <h3>Veil proof (send this with the redacted document)</h3>
       <textarea id="proof-output" readonly style="min-height:160px;"></textarea>
       <div class="btn-row">
         <button id="btn-copy-proof">Copy proof</button>
         <button id="btn-download-proof">Download proof.json</button>
-        <button id="btn-send-to-verify">Send to verifier below</button>
+        <button id="btn-send-to-verify">Send to the verifier below</button>
       </div>
     </div>
   </div>
@@ -310,47 +357,29 @@
 <section id="verify">
   <div class="wrap">
     <div class="step-title"><span class="step-num">3</span><h2>Verify a veil proof</h2></div>
-    <p>Paste a veil proof. Kar-Veil recomputes the hash of every revealed line fresh from the text in front of it
-      — it never trusts a hash the proof itself states for a visible line — folds in the declared hashes for the
-      hidden lines, and checks the result against the root.</p>
-    <div class="field">
-      <label for="verify-proof-input">Veil proof (JSON)</label>
-      <textarea id="verify-proof-input" placeholder="Paste a veil proof JSON here, or load a .json file below." spellcheck="false"></textarea>
-    </div>
-    <div class="field">
-      <label for="verify-file">…or load a proof file</label>
-      <input type="file" id="verify-file" accept="application/json,.json">
-    </div>
-    <div class="field">
-      <label for="verify-expected-root">Root you independently trust (strongly recommended)</label>
-      <input type="text" id="verify-expected-root" placeholder="Paste the root you saw published BEFORE the redaction — not just what this proof claims">
-      <p class="hint">Without this, Kar-Veil can only confirm the proof is internally consistent — not that it is
-        really the document you think it is.</p>
-    </div>
-    <div class="field">
-      <label for="verify-crosscheck-doc">Redacted document you actually received (optional cross-check)</label>
-      <textarea id="verify-crosscheck-doc" placeholder="Paste the redacted document as distributed to you, to confirm it matches the proof line-for-line." spellcheck="false"></textarea>
-    </div>
-    <div class="btn-row">
-      <button class="primary" id="btn-verify">Verify</button>
-    </div>
+    <p>You need the proof and the root that was published before the redaction. You never need the original.</p>
+    <label for="verify-proof-input">Veil proof</label>
+    <textarea id="verify-proof-input" placeholder="Paste a veil proof (JSON) here, or load a .json file below." spellcheck="false"></textarea>
+    <div class="btn-row"><input type="file" id="verify-file" accept="application/json,.json" aria-label="Load a proof file"></div>
+    <label for="verify-expected-root">The root published before the redaction</label>
+    <input type="text" id="verify-expected-root" placeholder="Paste the root you saw published BEFORE the redaction, not the one inside this proof" spellcheck="false">
+    <label for="verify-crosscheck-doc">The redacted document you received (optional)</label>
+    <textarea id="verify-crosscheck-doc" placeholder="Paste the redacted document as it reached you, to confirm it matches the proof line for line." spellcheck="false"></textarea>
+    <div class="btn-row"><button class="primary" id="btn-verify">Verify</button></div>
     <div class="panel" id="verify-result" style="display:none;">
       <div id="verify-verdict-wrap"></div>
       <ul class="issues" id="verify-issues"></ul>
+      <ul class="warnings" id="verify-warnings"></ul>
+      <div class="row-kv"><span class="k">Proof version</span><span class="v" id="verify-version"></span></div>
       <div class="row-kv"><span class="k">Recomputed root</span><span class="v" id="verify-recomputed-root"></span></div>
-      <div class="row-kv"><span class="k">Root stated in proof</span><span class="v" id="verify-declared-root"></span></div>
-      <div class="row-kv"><span class="k">Independent-root check</span><span class="v" id="verify-external-check"></span></div>
-      <div class="row-kv"><span class="k">Received-document cross-check</span><span class="v" id="verify-crosscheck-result"></span></div>
-
+      <div class="row-kv"><span class="k">Root stated in the proof</span><span class="v" id="verify-declared-root"></span></div>
+      <div class="row-kv"><span class="k">Published-root check</span><span class="v" id="verify-external-check"></span></div>
+      <div class="row-kv"><span class="k">Received-document check</span><span class="v" id="verify-crosscheck-result"></span></div>
       <h3>Optional: check a signature over the root</h3>
-      <div class="field">
-        <label for="verify-sig">Signature (hex)</label>
-        <input type="text" id="verify-sig" placeholder="ECDSA P-256 signature, hex">
-      </div>
-      <div class="field">
-        <label for="verify-pub">Public key (JWK)</label>
-        <textarea id="verify-pub" style="min-height:70px;" placeholder='{"kty":"EC","crv":"P-256", ...}'></textarea>
-      </div>
+      <label for="verify-sig">Signature</label>
+      <input type="text" id="verify-sig" placeholder="ECDSA P-256 signature, hex" spellcheck="false">
+      <label for="verify-pub">Public key (JWK)</label>
+      <textarea id="verify-pub" style="min-height:70px;" placeholder='{"kty":"EC","crv":"P-256", ...}' spellcheck="false"></textarea>
       <div class="btn-row"><button id="btn-verify-sig">Check signature</button></div>
       <div id="sig-verify-result" class="hint"></div>
     </div>
@@ -359,561 +388,231 @@
 
 <section id="demo">
   <div class="wrap">
-    <div class="step-title"><span class="step-num">◆</span><h2>Live tamper demo</h2></div>
-    <p>Loads a sample document, commits it, redacts two lines, generates a proof, and verifies it — live, in this
-      page. Then tampers with the proof and re-verifies, so you can see the exact catch happen.</p>
-    <div class="btn-row">
-      <button class="primary" id="btn-demo-load">Run: load, commit, redact, verify</button>
-      <button id="btn-demo-tamper" disabled>Now tamper with the proof and re-verify</button>
-    </div>
-    <div class="demo-log" id="demo-log">Nothing run yet.</div>
+    <div class="step-title"><span class="step-num">◆</span><h2>Attack it</h2></div>
+    <p>Commits a sample document under v2 with a fresh secret, hides two lines, then runs the same nine attacks the
+      measurement uses (<code>attacks.mjs</code>) against the honest proof and verifies each one against the root, here in
+      your browser. It also runs the two v1 faults, so you can see what v2 closes.</p>
+    <div class="btn-row"><button class="primary" id="btn-demo-run">Run the nine attacks</button></div>
+    <div id="demo-out" class="demo-log">Nothing run yet.</div>
+  </div>
+</section>
+
+<section id="v2">
+  <div class="wrap">
+    <h2>What changed in v2, and how it was measured</h2>
+    <p><b>Fault F1, structure forgery.</b> In v1 the line count was not part of the root, and a hidden line's hash could be
+      any 64-hex value, including an inner node of the tree. So two hidden lines could be shown as one, or a whole document
+      as half as many hidden lines, and the proof still landed on the root. v1's page said a dropped line made the root not
+      match; for this kind of drop it did match. <b>v2 binds the line count into the root</b>, so the tree's shape is fixed.</p>
+    <p><b>Fault F2, guessable hidden lines.</b> In v1 a hidden line's hash depended only on its position and its text. Anyone
+      who could guess the text (a name from a staff list, "Yes", an amount) could confirm the guess by hashing it. <b>v2 salts
+      every line</b> with a value derived from the committer's secret, so a guess cannot be checked without the secret.</p>
+    <p>Both faults, the fix and seven claims with their bars were sealed in
+      <a href="CLAIMS-2026-11-05-veil-v2.md">CLAIMS-2026-11-05-veil-v2.md</a> on 5 November, in a commit of its own, before
+      any code that measures them existed. <code>measure.mjs</code> then ran them on 400 random documents from one seeded
+      stream; CI re-runs it on GitHub's runner and fails if the receipt differs by one byte. The table is read from
+      <a href="receipts/measure.json">receipts/measure.json</a> when this page loads.</p>
+    <div class="tablewrap"><table class="t" id="claims-table"><thead><tr><th>claim</th><th>the bar</th><th>measured</th><th></th></tr></thead><tbody><tr><td colspan="4">reading the receipt…</td></tr></tbody></table></div>
+    <p class="hint" id="claims-note"></p>
+    <p class="hint">Re-run it yourself: <code>git clone https://github.com/sjgant80-hub/kar-veil &amp;&amp; cd kar-veil &amp;&amp; git clone --depth 1 --branch v0.6 https://github.com/sjgant80-hub/witness .witness &amp;&amp; node measure.mjs --check</code></p>
   </div>
 </section>
 
 <section id="how">
   <div class="wrap">
     <h2>How it works</h2>
+    <figure class="diagram">
+      <svg viewBox="0 0 640 300" role="img" aria-labelledby="dg-t dg-d" width="100%">
+        <title id="dg-t">A three-line v2 commitment</title>
+        <desc id="dg-d">Three lines each become a salted leaf; leaves 0 and 1 fold into a node; that node and leaf 2 fold into the top; the root hashes the line count with the top. Line 1 is hidden, so its proof entry is only its leaf hash.</desc>
+        <g font-family="ui-monospace, Consolas, monospace" font-size="12">
+          <rect x="230" y="12" width="180" height="40" rx="6" class="d-root"/>
+          <text x="320" y="30" text-anchor="middle" class="d-t">root</text>
+          <text x="320" y="45" text-anchor="middle" class="d-s">H(root : 3 lines : top)</text>
+          <line x1="320" y1="52" x2="320" y2="78" class="d-l"/>
+          <rect x="250" y="78" width="140" height="34" rx="6" class="d-node"/>
+          <text x="320" y="99" text-anchor="middle" class="d-t">top = node(n01, L2)</text>
+          <line x1="290" y1="112" x2="190" y2="140" class="d-l"/><line x1="350" y1="112" x2="500" y2="200" class="d-l"/>
+          <rect x="120" y="140" width="140" height="34" rx="6" class="d-node"/>
+          <text x="190" y="161" text-anchor="middle" class="d-t">n01 = node(L0, L1)</text>
+          <line x1="160" y1="174" x2="100" y2="200" class="d-l"/><line x1="220" y1="174" x2="300" y2="200" class="d-l"/>
+          <rect x="20" y="200" width="160" height="44" rx="6" class="d-leaf"/>
+          <text x="100" y="218" text-anchor="middle" class="d-t">L0 = H(leaf:0:salt0:text)</text>
+          <text x="100" y="234" text-anchor="middle" class="d-s">visible: text + salt shown</text>
+          <rect x="220" y="200" width="160" height="44" rx="6" class="d-hid"/>
+          <text x="300" y="218" text-anchor="middle" class="d-t">L1 (hidden)</text>
+          <text x="300" y="234" text-anchor="middle" class="d-s">only its hash is shown</text>
+          <rect x="420" y="200" width="160" height="44" rx="6" class="d-leaf"/>
+          <text x="500" y="218" text-anchor="middle" class="d-t">L2 = H(leaf:2:salt2:text)</text>
+          <text x="500" y="234" text-anchor="middle" class="d-s">visible: text + salt shown</text>
+          <text x="320" y="280" text-anchor="middle" class="d-s">salt i = HMAC-SHA-256(secret, "kar-veil:v2:salt:" + i): the secret never leaves the committer</text>
+        </g>
+      </svg>
+    </figure>
     <ol>
-      <li><strong>Commit.</strong> The document is split into lines. Each line is hashed as
-        <code>SHA-256("leaf:" + index + ":" + line)</code> — the position is baked into the hash. The line hashes
-        are folded pairwise with <code>SHA-256("node:" + left + ":" + right)</code> up to one root. An odd hash
-        at any level is promoted unchanged rather than duplicated against itself, which avoids a known ambiguity
-        class in naive duplicate-last-node Merkle trees.</li>
-      <li><strong>Redact.</strong> The proof carries the plain text of every line left visible, and — for hidden
-        lines only — the leaf hash that was already fixed at commit time. The hidden content itself never appears
-        in the proof.</li>
-      <li><strong>Verify.</strong> A verifier recomputes the leaf hash of every visible line from what is actually
-        in front of them, slots in the declared hashes for the hidden lines at their stated positions, rebuilds the
-        same fold, and compares the result to the root. Forging a hidden line's hash so the final root still
-        matches would require breaking SHA-256's collision resistance, not just trusting the redactor.</li>
+      <li><b>Commit.</b> The document is split into lines. Each line gets a salt, <code>HMAC-SHA-256(secret, "kar-veil:v2:salt:" + i)</code>,
+        and a leaf, <code>SHA-256("kar-veil:v2:leaf:" + i + ":" + salt + ":" + text)</code>. Leaves fold in pairs with
+        <code>SHA-256("kar-veil:v2:node:" + left + ":" + right)</code>; an odd hash at any level is promoted unchanged. The root is
+        <code>SHA-256("kar-veil:v2:root:" + lineCount + ":" + top)</code>, so the number of lines is fixed by the root.</li>
+      <li><b>Redact.</b> The proof carries, for each visible line, its position, its text and its salt; for each hidden line,
+        its position and its leaf hash only. The hidden text and the secret are never in it.</li>
+      <li><b>Verify.</b> The verifier recomputes every visible leaf from the text and salt in front of it (never from a stated
+        hash), places each hidden hash at its position, folds the same way, binds the line count, and compares the result
+        with the root published first. To make a changed proof land on that root, someone would have to find a SHA-256
+        collision. To learn a hidden line, they would have to guess both the text and a 256-bit salt.</li>
+      <li><b>Old proofs.</b> A v1 proof still verifies under the v1 rules, so old roots stay checkable, and its verdict always
+        names F1 and F2. Ask for a v2 proof.</li>
     </ol>
+  </div>
+</section>
+
+<section id="blueprint">
+  <div class="wrap">
+    <h2>Blueprint</h2>
+    <p>Four files, zero dependencies, all in the repository. The page imports the first one, so the gated logic is the
+      logic you run here. The gate counts are read from <a href="receipts/gate.json">receipts/gate.json</a>; CI re-runs the
+      same gate on GitHub's runner on every push.</p>
+    <div class="tablewrap"><table class="t" id="bp-table"><thead><tr><th>organ</th><th>what it does</th><th>its gate (witness v0.6, every mutant)</th></tr></thead><tbody>
+      <tr><td><code>veil.mjs</code></td><td>commit, prove, verify and preview: the logic this page runs</td><td id="bp-veil">reading…</td></tr>
+      <tr><td><code>veilcase.mjs</code></td><td>the cost case below, from the sourced basis</td><td id="bp-veilcase">reading…</td></tr>
+      <tr><td><code>attacks.mjs</code></td><td>the seeded stream, the corpus, the nine attacks, the guessing attack and the field mutations</td><td>the apparatus; its teeth are shown by the v1 faults it reproduces in every applicable case</td></tr>
+      <tr><td><code>measure.mjs</code></td><td>runs the sealed claims and writes receipts/measure.json</td><td>re-run byte for byte on GitHub's runner</td></tr>
+    </tbody></table></div>
+    <p class="hint">A mutation gate tests the tests: witness changes the kernel one operator at a time (a <code>&lt;</code>
+      becomes <code>&lt;=</code>, an <code>&amp;&amp;</code> becomes <code>||</code>) and the tests must fail on every change. A change the
+      tests let through is a gap in them.</p>
+  </div>
+</section>
+
+<section id="adoption">
+  <div class="wrap">
+    <h2>Roll it out</h2>
+    <p>For anyone who sends redacted documents others must trust: disclosure and legal teams, freedom-of-information
+      officers, HR investigations, health and care records, and pipelines where an AI does the redacting.</p>
+    <ol class="steps">
+      <li><b>Pick one stream</b> of documents that already gets redacted, and the person who checks those redactions today.</li>
+      <li><b>Commit at intake.</b> When an original arrives, commit it and record the root somewhere independent: your
+        document system's audit log, a git repository, a notary. Keep the secret with the original, under the same access rules.</li>
+      <li><b>Redact as you do now,</b> then make the veil proof from the original and its secret, and send it with the
+        redacted copy.</li>
+      <li><b>Recipients verify</b> on this page, or with <code>veil.mjs</code> in their own tools (it runs in any browser or in
+        Node 20). The page also runs offline once loaded, and can be hosted on your own intranet as it is.</li>
+      <li><b>Measure the difference</b> with the cost case below: the minutes your checker spent per copy before, against the
+        seconds a verify takes.</li>
+    </ol>
+  </div>
+</section>
+
+<section id="business">
+  <div class="wrap">
+    <h2>For a business</h2>
+    <p><b>What it does.</b> Every redacted document you send can carry its own proof that only the declared lines were
+      hidden and nothing else changed, checkable by the recipient in seconds without ever seeing the hidden content. It turns
+      "trust our redaction" into arithmetic anyone can repeat.</p>
+    <div class="roles">
+      <p><b>CEO.</b> A disclosure that cannot be quietly altered removes a class of dispute: about whether the copy someone
+        received is the copy you redacted.</p>
+      <p><b>CFO.</b> The checking time it removes is worked out below from your own volumes and the UK median wage (ONS). There
+        is no licence fee: Kar-Veil is MIT.</p>
+      <p><b>COO.</b> One extra step at intake (commit) and one at send (make the proof). The checker's line-by-line comparison
+        becomes a verify.</p>
+      <p><b>CTO / CISO.</b> One static page and one dependency-free module. No server, no account, no upload: every hash is
+        computed in the browser with the Web Crypto API (SHA-256, HMAC-SHA-256). The logic is mutation-gated and its claims
+        re-run on GitHub's runner. Read <a href="veil.mjs">veil.mjs</a>; it is short.</p>
+      <p><b>Legal and compliance.</b> The verifier never receives the hidden content, which suits data minimisation. Kar-Veil
+        does not decide what must be redacted, and does not timestamp: record the root where your process already keeps evidence.</p>
+      <p><b>The teams.</b> Redactors keep their tools. Recipients get a yes or no with the reason, not a judgement call.</p>
+    </div>
+
+    <h3>The cost case, on your numbers</h3>
+    <p>What it costs today to confirm by hand that each redacted copy is faithful (open both, compare, ask, chase), against
+      checking a veil proof. Staff time is at the UK median hourly wage with on-costs left out, so this is a floor. Later years
+      rise with UK CPI. Every input is yours.</p>
+    <div class="case-form">
+      <label>Redacted copies someone must trust, per week <input type="number" id="case-docs" min="0" step="1"></label>
+      <label>Minutes to confirm one by hand today <input type="number" id="case-min" min="0" step="0.5"></label>
+      <label>Share of that checking a proof takes over (%) <input type="number" id="case-share" min="0" max="100" step="5"></label>
+      <label>Seconds to verify one proof <input type="number" id="case-sec" min="0" step="1"></label>
+      <label>Paid today for any comparison or review tool this replaces (£ per month) <input type="number" id="case-tool" min="0" step="10"></label>
+      <label>Years <input type="number" id="case-years" min="1" max="10" step="1"></label>
+    </div>
+    <p class="hint" id="case-why" role="alert"></p>
+    <p class="case-big" id="case-big"></p>
+    <div class="tablewrap"><table class="t"><thead><tr><th>year</th><th>checking by hand</th><th>with veil proofs</th><th>saved</th></tr></thead><tbody id="case-rows"></tbody></table></div>
+    <p class="hint" id="case-sources"></p>
+
+    <h3>Against what you do now</h3>
+    <ul>
+      <li><b>A second person compares the copies line by line.</b> That person needs the original, which is exactly what the
+        recipient should not see. A veil proof needs no original.</li>
+      <li><b>Redaction software.</b> It hides content well; it does not give the recipient a way to check that nothing else
+        changed. Kar-Veil sits after it, whatever tool you use.</li>
+      <li><b>Signing the redacted PDF.</b> A signature says who sent this file. It cannot show that the file is a faithful part
+        of an earlier original, because the original was never committed to.</li>
+    </ul>
+
+    <h3>Security, data protection and deployment</h3>
+    <ul>
+      <li>Runs entirely in the browser; nothing you paste is sent anywhere. It can be saved and served from your own intranet
+        unchanged.</li>
+      <li>Security rests on SHA-256 and HMAC-SHA-256 doing what the standards say. The secret is 32 random bytes from the
+        browser's cryptographic generator.</li>
+      <li>What a proof reveals: the number of lines and which positions are hidden. Nothing else about the hidden lines.</li>
+    </ul>
+
+    <h3>Support and ownership</h3>
+    <p>Supplied by <a href="https://www.ai-nativesolutions.com">AI Native Solutions</a>; start through that site. Support, any
+      service level, warranty and liability are agreed per deployment, in each deployment's agreement. The software is MIT
+      and keeps running without us.</p>
+
+    <h3>Risks, answered straight</h3>
+    <ul>
+      <li><b>The root was not recorded before the redaction.</b> Then a proof only shows it agrees with itself (CONSISTENT).
+        Record roots at intake.</li>
+      <li><b>The secret is lost.</b> No new proofs can be made for that original; proofs already sent still verify.</li>
+      <li><b>The secret leaks.</b> Whoever holds it can test guesses at hidden lines, as with v1. The structure stays bound by
+        the root. Keep secrets with the originals.</li>
+      <li><b>Part of a line is sensitive.</b> Split it onto its own line before you commit.</li>
+      <li><b>Old v1 proofs.</b> They still check, with both faults named. Re-issue anything that matters as v2.</li>
+    </ul>
+
+    <h3>The case for the board</h3>
+    <p>Disputes about redacted disclosures are disputes about trust. Kar-Veil replaces that trust with a check anyone can
+      repeat, at no licence cost, without sending a single document anywhere. Its own faults were found, published and fixed
+      in the open, and the fix was measured against claims sealed before the code existed.</p>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
     <h2>FAQ</h2>
     <dl class="faq">
-      <dt>Why lines, and not the whole document or individual words?</dt>
-      <dd>Whole-document hashing only tells you "changed" or "not changed" — it cannot support partial disclosure.
-        Word-level hashing gets tangled in whitespace and structure. Lines are the natural unit for the documents
-        this targets: letters, transcripts, reports, disclosures.</dd>
+      <dt>Why lines, and not the whole document or single words?</dt>
+      <dd>Hashing the whole document only says changed or not, so nothing can be partly disclosed. Words get tangled in
+        spacing and layout. Lines suit letters, transcripts, reports and disclosures.</dd>
       <dt>Does this replace a human redaction review?</dt>
-      <dd>No. It makes the <em>result</em> of a redaction decision checkable after the fact. It has no opinion on
-        what should have been redacted.</dd>
-      <dt>Can I use this on a PDF or a scanned image?</dt>
-      <dd>Only via its extracted text. Anything not captured in the text you paste — layout, metadata, images —
-        is outside the commitment.</dd>
-      <dt>Does the verifier ever need the original document?</dt>
-      <dd>No — that is the entire point. Only whoever generates a proof needs the original. A verifier needs the
-        proof and, ideally, a root they already trust from before the redaction.</dd>
-      <dt>What does the optional signature actually prove?</dt>
-      <dd>That whoever held that specific private key signed that specific root. It is not a timestamp, and it
-        does not by itself tell you who that key belongs to — that binding is on you, the same as any public key.</dd>
+      <dd>No. It makes the result of a redaction checkable afterwards. It has no view on what should have been hidden.</dd>
+      <dt>Can I use it on a PDF or a scan?</dt>
+      <dd>Only on its extracted text. Layout, images and metadata are outside the commitment.</dd>
+      <dt>Does the verifier ever need the original?</dt>
+      <dd>No. Only whoever makes a proof needs the original and its secret. A verifier needs the proof and the root published
+        before the redaction.</dd>
+      <dt>Why is there a secret now?</dt>
+      <dd>It salts every line, so a hidden line cannot be confirmed by guessing its text (fault F2 in v1). It is not in any
+        proof and is never needed to verify.</dd>
+      <dt>What does the optional signature prove?</dt>
+      <dd>That whoever held that private key signed that root. It is not a timestamp, and it does not say whose key it is.</dd>
     </dl>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
-    <p>Kar-Veil · built by Kar (karma-didy) on the FallForge estate, powered by the Konomi architecture, created by Thomas Frumkin.</p>
+    <p>Kar-Veil · built by Kar (karma-didy) on the FallForge estate · <a href="https://github.com/sjgant80-hub/kar-veil">source</a> · MIT · powered by the Konomi architecture, created by Thomas Frumkin.</p>
     <p>Runs entirely in your browser. Nothing you paste here is sent anywhere.</p>
   </div>
 </footer>
 
-<script>
-(function(){
-  "use strict";
-
-  /* ---------- core primitives ---------- */
-
-  function bufToHex(buf){
-    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
-  }
-  function hexToBuf(hex){
-    const clean = (hex || "").trim().replace(/^0x/i,"");
-    if (!/^[0-9a-f]*$/i.test(clean) || clean.length % 2 !== 0){
-      throw new Error("Not valid hex");
-    }
-    const out = new Uint8Array(clean.length / 2);
-    for (let i=0;i<out.length;i++) out[i] = parseInt(clean.substr(i*2,2),16);
-    return out.buffer;
-  }
-  async function sha256Hex(str){
-    const enc = new TextEncoder().encode(str);
-    const buf = await crypto.subtle.digest("SHA-256", enc);
-    return bufToHex(buf);
-  }
-  function leafHash(index, text){
-    return sha256Hex("leaf:" + index + ":" + text);
-  }
-  function nodeHash(left, right){
-    return sha256Hex("node:" + left + ":" + right);
-  }
-  async function buildMerkleRoot(hashes){
-    if (!hashes || !hashes.length) throw new Error("Cannot build a root over zero lines.");
-    let cur = hashes.slice();
-    while (cur.length > 1){
-      const promises = [];
-      for (let i=0;i<cur.length;i+=2){
-        if (i+1 < cur.length) promises.push(nodeHash(cur[i], cur[i+1]));
-        else promises.push(Promise.resolve(cur[i])); // odd one out: promote, never duplicate
-      }
-      cur = await Promise.all(promises);
-    }
-    return cur[0];
-  }
-  function normalizeNewlines(text){
-    return (text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  }
-  function splitLines(text){
-    return normalizeNewlines(text).split("\n");
-  }
-  async function computeCommit(text){
-    const lines = splitLines(text);
-    const hashes = await Promise.all(lines.map((line, i) => leafHash(i, line)));
-    const root = await buildMerkleRoot(hashes);
-    return { lines, hashes, root, lineCount: lines.length };
-  }
-
-  const PROOF_KIND = "kar-veil-proof-v1";
-
-  function generateProof(lines, hashes, root, redactedIndexSet){
-    const revealed = [];
-    const redactedHashes = [];
-    lines.forEach((line, i) => {
-      if (redactedIndexSet.has(i)) redactedHashes.push({ index: i, hash: hashes[i] });
-      else revealed.push({ index: i, text: line });
-    });
-    return {
-      kind: PROOF_KIND,
-      root: root,
-      lineCount: lines.length,
-      revealed: revealed,
-      redactedHashes: redactedHashes,
-      createdAt: new Date().toISOString(),
-      note: "createdAt is informational only — Kar-Veil does not verify timing. Pair the root with your own timestamping."
-    };
-  }
-
-  function rebuildPreview(proof){
-    const out = new Array(proof.lineCount);
-    proof.revealed.forEach(r => { out[r.index] = r.text; });
-    proof.redactedHashes.forEach(r => { out[r.index] = "[REDACTED]"; });
-    return out.join("\n");
-  }
-
-  async function verifyVeilProof(proof, expectedRootRaw, crosscheckDocRaw){
-    const issues = [];
-    if (!proof || typeof proof !== "object") return { status:"MALFORMED", issues:["Not a JSON object."] };
-    if (proof.kind !== PROOF_KIND) issues.push('Unrecognized proof "kind" — expected "' + PROOF_KIND + '".');
-    const total = proof.lineCount;
-    if (!Number.isInteger(total) || total < 1) issues.push("lineCount is missing or invalid.");
-    if (!Array.isArray(proof.revealed)) issues.push("revealed is missing or not an array.");
-    if (!Array.isArray(proof.redactedHashes)) issues.push("redactedHashes is missing or not an array.");
-    if (typeof proof.root !== "string" || !/^[0-9a-f]{64}$/i.test(proof.root)) issues.push("root is missing or not a 64-hex string.");
-    if (issues.length) return { status:"MALFORMED", issues };
-
-    const seen = new Array(total).fill(false);
-    const slots = new Array(total).fill(null);
-
-    for (const r of proof.revealed){
-      if (typeof r.index !== "number" || r.index < 0 || r.index >= total || typeof r.text !== "string"){
-        issues.push("A revealed entry is malformed: " + JSON.stringify(r));
-        continue;
-      }
-      if (seen[r.index]) issues.push("Index " + r.index + " appears more than once.");
-      seen[r.index] = true;
-      slots[r.index] = await leafHash(r.index, r.text); // recomputed fresh — never trust a stated hash for a revealed line
-    }
-    for (const rh of proof.redactedHashes){
-      if (typeof rh.index !== "number" || rh.index < 0 || rh.index >= total || typeof rh.hash !== "string" || !/^[0-9a-f]{64}$/i.test(rh.hash)){
-        issues.push("A redacted-hash entry is malformed: " + JSON.stringify(rh));
-        continue;
-      }
-      if (seen[rh.index]) issues.push("Index " + rh.index + " appears more than once.");
-      seen[rh.index] = true;
-      slots[rh.index] = rh.hash.toLowerCase();
-    }
-    for (let i=0;i<total;i++){
-      if (!seen[i]) issues.push("Line " + i + " is neither revealed nor redacted — the proof is incomplete.");
-    }
-    if (issues.length) return { status:"MALFORMED", issues };
-
-    const recomputedRoot = await buildMerkleRoot(slots);
-    const declaredRoot = proof.root.toLowerCase();
-    const rootsMatch = recomputedRoot === declaredRoot;
-    if (!rootsMatch){
-      issues.push("Recomputed root does not match the root stated in the proof — the proof is internally inconsistent (a revealed line was altered after the proof was made, or a redacted-hash slot was forged).");
-    }
-
-    let externalCheck = "not performed";
-    const expectedRoot = (expectedRootRaw || "").trim().toLowerCase();
-    if (expectedRoot){
-      externalCheck = (expectedRoot === declaredRoot) ? "MATCH" : "MISMATCH";
-      if (externalCheck === "MISMATCH"){
-        issues.push("The root you independently supplied does not match the root stated in the proof — this may not be the document you think it is.");
-      }
-    }
-
-    let crosscheckResult = "not performed";
-    const crosscheckDoc = crosscheckDocRaw;
-    if (crosscheckDoc && crosscheckDoc.trim().length){
-      const pastedLines = splitLines(crosscheckDoc);
-      if (pastedLines.length !== total){
-        crosscheckResult = "MISMATCH";
-        issues.push("Line count differs: proof says " + total + ", the pasted document has " + pastedLines.length + " lines.");
-      } else {
-        let allMatch = true;
-        for (const r of proof.revealed){
-          if (pastedLines[r.index] !== r.text){ allMatch = false; break; }
-        }
-        crosscheckResult = allMatch ? "MATCH" : "MISMATCH";
-        if (!allMatch) issues.push("A visible line in the pasted document does not match the proof's revealed text at that position.");
-      }
-    }
-
-    const ok = rootsMatch && issues.length === 0;
-    return {
-      status: ok ? "VERIFIED" : "BREACHED",
-      issues,
-      recomputedRoot,
-      declaredRoot,
-      externalCheck,
-      crosscheckResult
-    };
-  }
-
-  /* ---------- optional ECDSA signing ---------- */
-
-  let signingKeyPair = null;
-  async function ensureSigningKey(){
-    if (!signingKeyPair){
-      signingKeyPair = await crypto.subtle.generateKey({ name:"ECDSA", namedCurve:"P-256" }, true, ["sign","verify"]);
-    }
-    return signingKeyPair;
-  }
-  async function signRootHex(root){
-    const kp = await ensureSigningKey();
-    const data = new TextEncoder().encode("kar-veil-root:" + root);
-    const sig = await crypto.subtle.sign({ name:"ECDSA", hash:"SHA-256" }, kp.privateKey, data);
-    const jwk = await crypto.subtle.exportKey("jwk", kp.publicKey);
-    return { signatureHex: bufToHex(sig), publicKeyJwk: jwk };
-  }
-  async function verifyRootSignature(root, signatureHex, jwk){
-    const pubKey = await crypto.subtle.importKey("jwk", jwk, { name:"ECDSA", namedCurve:"P-256" }, true, ["verify"]);
-    const data = new TextEncoder().encode("kar-veil-root:" + root);
-    return crypto.subtle.verify({ name:"ECDSA", hash:"SHA-256" }, pubKey, hexToBuf(signatureHex), data);
-  }
-
-  /* ---------- small DOM/util helpers ---------- */
-
-  const $ = (id) => document.getElementById(id);
-
-  async function copyText(str){
-    try{
-      await navigator.clipboard.writeText(str);
-      return true;
-    }catch(e){
-      try{
-        const ta = document.createElement("textarea");
-        ta.value = str; ta.style.position = "fixed"; ta.style.opacity = "0";
-        document.body.appendChild(ta); ta.focus(); ta.select();
-        const ok = document.execCommand("copy");
-        document.body.removeChild(ta);
-        return ok;
-      }catch(e2){
-        return false;
-      }
-    }
-  }
-  function downloadText(filename, content, mime){
-    const blob = new Blob([content], { type: mime || "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-  }
-
-  const SAMPLE_DOC =
-"Incident report — case ref 8841-B\n" +
-"Filed by: duty officer on shift\n" +
-"Date of incident: the 14th, evening shift\n" +
-"Location: north loading bay\n" +
-"Complainant contact: redacted for this proof\n" +
-"Summary: a delivery pallet was found damaged on arrival.\n" +
-"The driver's account matched the warehouse log for that hour.\n" +
-"No injuries were reported by anyone on site.\n" +
-"Internal case handler: redacted for this proof\n" +
-"Recommended action: replace the damaged pallet and note the carrier.\n" +
-"Status: closed, no further action required.";
-
-  /* ---------- state ---------- */
-
-  const state = {
-    commit: null,      // { lines, hashes, root, lineCount }
-    redactSelection: new Set(),
-    lastProof: null
-  };
-
-  /* ---------- Step 1: commit ---------- */
-
-  $("btn-load-sample").addEventListener("click", () => {
-    $("original-doc").value = SAMPLE_DOC;
-  });
-
-  $("btn-commit").addEventListener("click", async () => {
-    const text = $("original-doc").value;
-    if (!text.trim()){ alert("Paste a document first."); return; }
-    const btn = $("btn-commit");
-    btn.disabled = true;
-    try{
-      const commit = await computeCommit(text);
-      state.commit = commit;
-      $("commit-linecount").textContent = String(commit.lineCount);
-      $("commit-root").textContent = commit.root;
-      $("commit-result").style.display = "";
-      $("sign-output").style.display = "none";
-      // prefill step 2 for convenience
-      $("redact-doc-input").value = text;
-      $("redact-expected-root").value = commit.root;
-      $("redact-line-list").style.display = "none";
-      $("btn-generate-proof").disabled = true;
-      state.redactSelection = new Set();
-    }catch(e){
-      alert("Could not commit: " + e.message);
-    }finally{
-      btn.disabled = false;
-    }
-  });
-
-  $("btn-copy-root").addEventListener("click", async () => {
-    if (!state.commit) return;
-    const ok = await copyText(state.commit.root);
-    $("btn-copy-root").textContent = ok ? "Copied" : "Copy failed — select manually";
-    setTimeout(() => { $("btn-copy-root").textContent = "Copy root"; }, 1500);
-  });
-
-  $("btn-sign-root").addEventListener("click", async () => {
-    if (!state.commit) return;
-    try{
-      const { signatureHex, publicKeyJwk } = await signRootHex(state.commit.root);
-      $("sign-sig").textContent = signatureHex;
-      $("sign-pub").textContent = JSON.stringify(publicKeyJwk);
-      $("sign-output").style.display = "";
-    }catch(e){
-      alert("Signing failed: " + e.message);
-    }
-  });
-
-  /* ---------- Step 2: redact + prove ---------- */
-
-  function renderLineList(lines){
-    const container = $("redact-line-list");
-    container.innerHTML = "";
-    lines.forEach((line, i) => {
-      const row = document.createElement("div");
-      row.className = "line-row";
-      row.dataset.index = String(i);
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.checked = state.redactSelection.has(i);
-      const idx = document.createElement("span");
-      idx.className = "idx"; idx.textContent = i + ".";
-      const txt = document.createElement("span");
-      txt.className = "txt"; txt.textContent = line.length ? line : "(empty line)";
-      row.appendChild(cb); row.appendChild(idx); row.appendChild(txt);
-      if (cb.checked) row.classList.add("redacted");
-
-      function toggle(){
-        if (state.redactSelection.has(i)){ state.redactSelection.delete(i); cb.checked = false; row.classList.remove("redacted"); }
-        else { state.redactSelection.add(i); cb.checked = true; row.classList.add("redacted"); }
-      }
-      cb.addEventListener("click", (e) => { e.stopPropagation(); toggle(); });
-      row.addEventListener("click", (e) => { if (e.target !== cb) toggle(); });
-      container.appendChild(row);
-    });
-    container.style.display = "";
-    $("btn-generate-proof").disabled = false;
-  }
-
-  $("btn-parse-lines").addEventListener("click", () => {
-    const text = $("redact-doc-input").value;
-    if (!text.trim()){ alert("Paste the original document first."); return; }
-    state.redactSelection = new Set();
-    renderLineList(splitLines(text));
-  });
-
-  $("btn-generate-proof").addEventListener("click", async () => {
-    const text = $("redact-doc-input").value;
-    const expectedRoot = $("redact-expected-root").value.trim();
-    const btn = $("btn-generate-proof");
-    btn.disabled = true;
-    try{
-      const commit = await computeCommit(text);
-      if (expectedRoot && expectedRoot.toLowerCase() !== commit.root.toLowerCase()){
-        throw new Error("Computed root does not match the expected root you entered — check the pasted text is exactly the committed original.");
-      }
-      if (state.redactSelection.size === 0 && !confirm("No lines are marked for redaction — generate a proof that reveals everything?")){
-        btn.disabled = false;
-        return;
-      }
-      const proof = generateProof(commit.lines, commit.hashes, commit.root, state.redactSelection);
-      state.lastProof = proof;
-      $("redacted-preview").textContent = rebuildPreview(proof);
-      $("proof-output").value = JSON.stringify(proof, null, 2);
-      $("redact-result").style.display = "";
-    }catch(e){
-      alert(e.message);
-    }finally{
-      btn.disabled = false;
-    }
-  });
-
-  $("btn-copy-proof").addEventListener("click", async () => {
-    const ok = await copyText($("proof-output").value);
-    $("btn-copy-proof").textContent = ok ? "Copied" : "Copy failed — select manually";
-    setTimeout(() => { $("btn-copy-proof").textContent = "Copy proof"; }, 1500);
-  });
-  $("btn-download-proof").addEventListener("click", () => {
-    if (!state.lastProof) return;
-    downloadText("veil-proof.json", JSON.stringify(state.lastProof, null, 2));
-  });
-  $("btn-send-to-verify").addEventListener("click", () => {
-    if (!state.lastProof) return;
-    $("verify-proof-input").value = JSON.stringify(state.lastProof, null, 2);
-    $("verify").scrollIntoView({ behavior:"smooth", block:"start" });
-  });
-
-  /* ---------- Step 3: verify ---------- */
-
-  function renderVerdict(result){
-    $("verify-result").style.display = "";
-    const wrap = $("verify-verdict-wrap");
-    wrap.innerHTML = "";
-    const badge = document.createElement("div");
-    const cls = result.status === "VERIFIED" ? "verified" : (result.status === "BREACHED" ? "breached" : "malformed");
-    badge.className = "verdict " + cls;
-    badge.textContent = result.status;
-    wrap.appendChild(badge);
-
-    const issuesEl = $("verify-issues");
-    issuesEl.innerHTML = "";
-    (result.issues || []).forEach(msg => {
-      const li = document.createElement("li"); li.textContent = msg; issuesEl.appendChild(li);
-    });
-
-    $("verify-recomputed-root").textContent = result.recomputedRoot || "—";
-    $("verify-declared-root").textContent = result.declaredRoot || "—";
-    $("verify-external-check").textContent = result.externalCheck || "not performed";
-    $("verify-crosscheck-result").textContent = result.crosscheckResult || "not performed";
-  }
-
-  async function runVerify(){
-    let proof;
-    try{
-      proof = JSON.parse($("verify-proof-input").value);
-    }catch(e){
-      renderVerdict({ status:"MALFORMED", issues:["Could not parse proof JSON: " + e.message] });
-      return;
-    }
-    const expectedRoot = $("verify-expected-root").value;
-    const crosscheckDoc = $("verify-crosscheck-doc").value;
-    const result = await verifyVeilProof(proof, expectedRoot, crosscheckDoc);
-    if (!expectedRoot.trim() && result.status !== "MALFORMED"){
-      result.issues = (result.issues || []).slice();
-    }
-    renderVerdict(result);
-    if (!expectedRoot.trim()){
-      const wrap = $("verify-verdict-wrap");
-      const warn = document.createElement("div");
-      warn.className = "warn-banner";
-      warn.textContent = "No independently-trusted root was supplied — this only confirms the proof is internally consistent, not that it is the specific document you expect.";
-      wrap.appendChild(warn);
-    }
-  }
-  $("btn-verify").addEventListener("click", runVerify);
-
-  $("verify-file").addEventListener("change", (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => { $("verify-proof-input").value = String(reader.result || ""); };
-    reader.readAsText(file);
-  });
-
-  $("btn-verify-sig").addEventListener("click", async () => {
-    const out = $("sig-verify-result");
-    try{
-      const proof = JSON.parse($("verify-proof-input").value);
-      const sig = $("verify-sig").value.trim();
-      const jwk = JSON.parse($("verify-pub").value);
-      if (!sig || !proof || !proof.root) throw new Error("Need a parsed proof (with a root) and a signature.");
-      const ok = await verifyRootSignature(proof.root, sig, jwk);
-      out.textContent = ok ? "Signature is VALID for this root and public key." : "Signature does NOT match this root/key.";
-      out.style.color = ok ? "var(--good)" : "var(--bad)";
-    }catch(e){
-      out.textContent = "Could not check signature: " + e.message;
-      out.style.color = "var(--warn)";
-    }
-  });
-
-  /* ---------- live tamper demo ---------- */
-
-  let demoProof = null;
-
-  function demoLog(msg){
-    $("demo-log").textContent = msg;
-  }
-
-  $("btn-demo-load").addEventListener("click", async () => {
-    const btn = $("btn-demo-load");
-    btn.disabled = true;
-    try{
-      demoLog("Committing sample document…");
-      const commit = await computeCommit(SAMPLE_DOC);
-      const redact = new Set([4, 8]); // the two contact/handler lines
-      demoLog("Redacting lines 4 and 8, generating proof…");
-      const proof = generateProof(commit.lines, commit.hashes, commit.root, redact);
-      demoProof = proof;
-      demoLog("Verifying the fresh proof against the trusted root…");
-      const result = await verifyVeilProof(proof, commit.root, rebuildPreview(proof));
-      demoLog(
-        "Result: " + result.status + "\n" +
-        "Recomputed root: " + result.recomputedRoot + "\n" +
-        "Declared root:    " + result.declaredRoot + "\n" +
-        (result.issues.length ? ("Issues: " + result.issues.join(" | ")) : "No issues — the redacted document checks out.")
-      );
-      $("btn-demo-tamper").disabled = false;
-    }catch(e){
-      demoLog("Demo failed: " + e.message);
-    }finally{
-      btn.disabled = false;
-    }
-  });
-
-  $("btn-demo-tamper").addEventListener("click", async () => {
-    if (!demoProof){ return; }
-    const btn = $("btn-demo-tamper");
-    btn.disabled = true;
-    try{
-      // Tamper: quietly edit one visible line's text after the proof was made.
-      const tampered = JSON.parse(JSON.stringify(demoProof));
-      const target = tampered.revealed.find(r => r.index === 5); // the "Summary:" line
-      const before = target.text;
-      target.text = before.replace("damaged", "MISSING");
-      demoLog("Tampering: silently changed line 5 from:\n  \"" + before + "\"\nto:\n  \"" + target.text + "\"\n\nRe-verifying against the same trusted root…");
-      const result = await verifyVeilProof(tampered, demoProof.root, null);
-      demoLog(
-        "Tampered proof result: " + result.status + "\n" +
-        "Recomputed root: " + result.recomputedRoot + "\n" +
-        "Declared root:    " + result.declaredRoot + "\n" +
-        "Issues:\n  - " + result.issues.join("\n  - ")
-      );
-    }catch(e){
-      demoLog("Tamper demo failed: " + e.message);
-    }finally{
-      btn.disabled = false;
-    }
-  });
-
-})();
-</script>
+<script type="module" src="page.mjs"></script>
 </body>
 </html>

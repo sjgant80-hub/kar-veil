@@ -1,0 +1,37 @@
+{
+ "kind": "kar-veil.gate",
+ "v": 1,
+ "witness": {
+  "tag": "v0.6",
+  "sha256": "9918297aa5f8fc4e1d26d9e6b25226f56102fdc04f0c634155bfcba1c086ef48"
+ },
+ "kernels": [
+  {
+   "file": "veil.mjs",
+   "what": "commit, prove and verify: the logic the page runs",
+   "sha256": "184f284739df76ca3e30f54017fa938be7f92b22853e6f50272d172b5e56d397",
+   "tests": "node --test veil.test.mjs",
+   "testsSha256": "8c9f7ef16a37c86a7b2b7e7e93dea845c8415a41765f54e0ecc304d302c6c887",
+   "total": 55,
+   "killed": 55,
+   "survived": [],
+   "ignored": [],
+   "capped": false,
+   "clean": true
+  },
+  {
+   "file": "veilcase.mjs",
+   "what": "the cost case, from the sourced basis",
+   "sha256": "48171bf44b74a483c1b22303dc3573d95e5ea2da08423c4be49c02035611e872",
+   "tests": "node --test veilcase.test.mjs",
+   "testsSha256": "8f9c7ed58a7b95232da0db872651bb8b25d7c14e0c526f01d8ba78a2bba01044",
+   "total": 16,
+   "killed": 16,
+   "survived": [],
+   "ignored": [],
+   "capped": false,
+   "clean": true
+  }
+ ],
+ "clean": true
+}

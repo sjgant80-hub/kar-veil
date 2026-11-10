@@ -1,0 +1,42 @@
+name: ci
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: kernel, cost case and page tests
+        run: node --test veil.test.mjs veilcase.test.mjs page.test.mjs
+      - name: fetch witness v0.6 (pinned)
+        run: git clone --depth 1 --branch v0.6 https://github.com/sjgant80-hub/witness.git .witness
+      - name: the committed gate receipt names these kernels and these tests
+        run: node gate.mjs --verify
+      - name: the sealed measurement re-derived on this runner, byte for byte
+        run: node measure.mjs --check
+  witness:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { kernel: veil.mjs, tests: veil.test.mjs }
+          - { kernel: veilcase.mjs, tests: veilcase.test.mjs }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: fetch witness v0.6 (pinned)
+        run: git clone --depth 1 --branch v0.6 https://github.com/sjgant80-hub/witness.git .witness
+      - name: ${{ matrix.kernel }} — every mutant must be killed (no cap)
+        run: |
+          node .witness/witness.mjs mutate ${{ matrix.kernel }} --timeout 120000 --cap 100000 --test node --test ${{ matrix.tests }} | tee gate.out
+          grep -q '"clean": true' gate.out || { echo "::error::mutants survived in ${{ matrix.kernel }}"; exit 1; }

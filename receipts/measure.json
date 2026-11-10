@@ -1,0 +1,169 @@
+{
+ "kind": "kar-veil.measure",
+ "v": 1,
+ "claimsFile": "CLAIMS-2026-11-05-veil-v2.md",
+ "claimsSha256": "26b8b14012a79bbcca6f1adfa43bf6f9079da8fff8be664dfd92d811fc299ef6",
+ "seed": 20261105,
+ "witness": {
+  "tag": "v0.6",
+  "sha256": "9918297aa5f8fc4e1d26d9e6b25226f56102fdc04f0c634155bfcba1c086ef48",
+  "used": "hostileInputs()"
+ },
+ "rerun": "git clone --depth 1 --branch v0.6 https://github.com/sjgant80-hub/witness .witness && node measure.mjs --check",
+ "corpus": {
+  "documents": 400,
+  "lines": 10002,
+  "hiddenLines": 3945,
+  "hideProbability": 0.4,
+  "proofKind": "kar-veil-proof-v2"
+ },
+ "classes": {
+  "T1": {
+   "what": "change one character of a visible line",
+   "cases": 394,
+   "BREACHED": 394,
+   "MALFORMED": 0,
+   "CONSISTENT": 0,
+   "VERIFIED": 0
+  },
+  "T2": {
+   "what": "replace a hidden line's hash with a different 64-hex value",
+   "cases": 382,
+   "BREACHED": 382,
+   "MALFORMED": 0,
+   "CONSISTENT": 0,
+   "VERIFIED": 0
+  },
+  "T3": {
+   "what": "drop one line from the proof",
+   "cases": 400,
+   "BREACHED": 0,
+   "MALFORMED": 400,
+   "CONSISTENT": 0,
+   "VERIFIED": 0
+  },
+  "T4": {
+   "what": "add an extra line at the end",
+   "cases": 400,
+   "BREACHED": 400,
+   "MALFORMED": 0,
+   "CONSISTENT": 0,
+   "VERIFIED": 0
+  },
+  "T5": {
+   "what": "swap the positions of two lines",
+   "cases": 393,
+   "BREACHED": 393,
+   "MALFORMED": 0,
+   "CONSISTENT": 0,
+   "VERIFIED": 0
+  },
+  "T6": {
+   "what": "fold every pair of lines into its parent (fault F1)",
+   "cases": 393,
+   "BREACHED": 393,
+   "MALFORMED": 0,
+   "CONSISTENT": 0,
+   "VERIFIED": 0
+  },
+  "T7": {
+   "what": "change a visible line, then rewrite the proof's stated root to match",
+   "cases": 394,
+   "BREACHED": 394,
+   "MALFORMED": 0,
+   "CONSISTENT": 0,
+   "VERIFIED": 0
+  },
+  "T8": {
+   "what": "change one character of a visible line's salt",
+   "cases": 394,
+   "BREACHED": 394,
+   "MALFORMED": 0,
+   "CONSISTENT": 0,
+   "VERIFIED": 0
+  },
+  "T9": {
+   "what": "change the line count alone, by one up and by one down",
+   "cases": 800,
+   "BREACHED": 0,
+   "MALFORMED": 800,
+   "CONSISTENT": 0,
+   "VERIFIED": 0
+  }
+ },
+ "guessing": {
+  "decoysPerLine": 9,
+  "v1": {
+   "confirmed": 3945,
+   "hashes": 39450
+  },
+  "v2": {
+   "confirmed": 0,
+   "hashes": 799230
+  }
+ },
+ "battery": {
+  "calls": 60,
+  "throws": 0,
+  "noVerdict": 0
+ },
+ "mutations": {
+  "count": 2000,
+  "throws": 0,
+  "noVerdict": 0,
+  "statuses": {
+   "BREACHED": 28,
+   "MALFORMED": 1972,
+   "CONSISTENT": 0,
+   "VERIFIED": 0
+  }
+ },
+ "claims": {
+  "C1": {
+   "claim": "honest v2 proofs verify",
+   "bar": "400 of 400 VERIFIED",
+   "got": "400 of 400",
+   "held": true
+  },
+  "C2": {
+   "claim": "every tamper is caught (v2)",
+   "bar": "every applicable case in T1-T9 BREACHED or MALFORMED",
+   "got": "T1 394/394, T2 382/382, T3 400/400, T4 400/400, T5 393/393, T6 393/393, T7 394/394, T8 394/394, T9 800/800",
+   "held": true
+  },
+  "C3": {
+   "claim": "no trusted root, no VERIFIED",
+   "bar": "every honest v2 proof and every T7 proof CONSISTENT without a trusted root",
+   "got": "794 of 794 CONSISTENT, 0 VERIFIED",
+   "held": true
+  },
+  "C4": {
+   "claim": "F1 reproduced on v1 and closed on v2",
+   "bar": "v2: 0 of the T6 forgeries VERIFIED",
+   "got": "v1 393 of 393 VERIFIED (the fault, as predicted); v2 0 of 393",
+   "held": true,
+   "v1Reproduced": true
+  },
+  "C5": {
+   "claim": "F2 reproduced on v1 and closed on v2",
+   "bar": "v2: 0 hidden lines confirmed without the secret",
+   "got": "v1 3945 of 3945 confirmed (the fault, as predicted); v2 0 of 3945",
+   "held": true,
+   "v1Reproduced": true
+  },
+  "C6": {
+   "claim": "v1 proofs stay checkable",
+   "bar": "400 of 400 VERIFIED, both fault warnings on all",
+   "got": "400 VERIFIED, 400 warned, of 400",
+   "held": true
+  },
+  "C7": {
+   "claim": "the verifier never throws",
+   "bar": "0 throws; 0 of 2,000 mutations VERIFIED",
+   "got": "0 throws in 60 battery calls, 0 throws and 0 VERIFIED in 2000 mutations",
+   "held": true
+  }
+ },
+ "held": 7,
+ "of": 7
+}
