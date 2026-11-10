@@ -364,6 +364,7 @@
     <label for="verify-expected-root">The root published before the redaction</label>
     <input type="text" id="verify-expected-root" placeholder="Paste the root you saw published BEFORE the redaction, not the one inside this proof" spellcheck="false">
     <label for="verify-crosscheck-doc">The redacted document you received (optional)</label>
+    <p class="hint">The proof alone settles whether its visible lines are the original's. Pasting the copy you were sent adds one more check: that the copy says the same as the proof, line for line.</p>
     <textarea id="verify-crosscheck-doc" placeholder="Paste the redacted document as it reached you, to confirm it matches the proof line for line." spellcheck="false"></textarea>
     <div class="btn-row"><button class="primary" id="btn-verify">Verify</button></div>
     <div class="panel" id="verify-result" style="display:none;">
@@ -472,7 +473,7 @@
     <p>Four files, zero dependencies, all in the repository. The page imports the first one, so the gated logic is the
       logic you run here. The gate counts are read from <a href="receipts/gate.json">receipts/gate.json</a>; CI re-runs the
       same gate on GitHub's runner on every push.</p>
-    <div class="tablewrap"><table class="t" id="bp-table"><thead><tr><th>organ</th><th>what it does</th><th>its gate (witness v0.6, every mutant)</th></tr></thead><tbody>
+    <div class="tablewrap"><table class="t" id="bp-table"><thead><tr><th>file</th><th>what it does</th><th>how it is proven (witness v0.6 mutation gate, every change)</th></tr></thead><tbody>
       <tr><td><code>veil.mjs</code></td><td>commit, prove, verify and preview: the logic this page runs</td><td id="bp-veil">reading…</td></tr>
       <tr><td><code>veilcase.mjs</code></td><td>the cost case below, from the sourced basis</td><td id="bp-veilcase">reading…</td></tr>
       <tr><td><code>attacks.mjs</code></td><td>the seeded stream, the corpus, the nine attacks, the guessing attack and the field mutations</td><td>the apparatus; its teeth are shown by the v1 faults it reproduces in every applicable case</td></tr>
@@ -493,10 +494,11 @@
       <li><b>Pick one stream</b> of documents that already gets redacted, and the person who checks those redactions today.</li>
       <li><b>Commit at intake.</b> When an original arrives, commit it and record the root somewhere independent: your
         document system's audit log, a git repository, a notary. Keep the secret with the original, under the same access rules.</li>
-      <li><b>Redact as you do now,</b> then make the veil proof from the original and its secret, and send it with the
-        redacted copy.</li>
+      <li><b>Redact as you do now,</b> with any redaction tool, then make the veil proof from the original and its secret, and send it with the
+        redacted copy. To automate it, a script calls <code>commit()</code>, <code>prove()</code> and <code>verify()</code> from
+        <code>veil.mjs</code>; this page is the manual version of the same three calls.</li>
       <li><b>Recipients verify</b> on this page, or with <code>veil.mjs</code> in their own tools (it runs in any browser or in
-        Node 20). The page also runs offline once loaded, and can be hosted on your own intranet as it is.</li>
+        Node 20). Once loaded, the page keeps working offline. It can be hosted on your own intranet as it is, over HTTPS: browsers only give pages the Web Crypto API it uses on secure (HTTPS or localhost) addresses.</li>
       <li><b>Measure the difference</b> with the cost case below: the minutes your checker spent per copy before, against the
         seconds a verify takes.</li>
     </ol>
@@ -529,9 +531,9 @@
       checking a veil proof. Staff time is at the UK median hourly wage with on-costs left out, so this is a floor. Later years
       rise with UK CPI. Every input is yours.</p>
     <div class="case-form">
-      <label>Redacted copies someone must trust, per week <input type="number" id="case-docs" min="0" step="1"></label>
+      <label>Redacted copies your team sends or receives that need checking, per week <input type="number" id="case-docs" min="0" step="1"></label>
       <label>Minutes to confirm one by hand today <input type="number" id="case-min" min="0" step="0.5"></label>
-      <label>Share of that checking a proof takes over (%) <input type="number" id="case-share" min="0" max="100" step="5"></label>
+      <label>Share of today's hand checking a proof would replace (%) <input type="number" id="case-share" min="0" max="100" step="5"></label>
       <label>Seconds to verify one proof <input type="number" id="case-sec" min="0" step="1"></label>
       <label>Paid today for any comparison or review tool this replaces (£ per month) <input type="number" id="case-tool" min="0" step="10"></label>
       <label>Years <input type="number" id="case-years" min="1" max="10" step="1"></label>
@@ -545,18 +547,20 @@
     <ul>
       <li><b>A second person compares the copies line by line.</b> That person needs the original, which is exactly what the
         recipient should not see. A veil proof needs no original.</li>
-      <li><b>Redaction software.</b> It hides content well; it does not give the recipient a way to check that nothing else
-        changed. Kar-Veil sits after it, whatever tool you use.</li>
+      <li><b>Redaction software.</b> A redaction tool hides content. On its own, the copy it produces gives the recipient no
+        way to check that nothing else changed. Kar-Veil sits after it, whatever tool you use.</li>
       <li><b>Signing the redacted PDF.</b> A signature says who sent this file. It cannot show that the file is a faithful part
         of an earlier original, because the original was never committed to.</li>
     </ul>
 
     <h3>Security, data protection and deployment</h3>
     <ul>
-      <li>Runs entirely in the browser; nothing you paste is sent anywhere. It can be saved and served from your own intranet
-        unchanged.</li>
+      <li>Runs entirely in the browser; nothing you paste is sent anywhere. It can be served from your own intranet unchanged,
+        over HTTPS.</li>
+      <li>What it needs: a current browser (Chrome, Edge, Firefox or Safari) or Node 20 or later. No install, no account, no
+        server code; the files are a few small static files.</li>
       <li>Security rests on SHA-256 and HMAC-SHA-256 doing what the standards say. The secret is 32 random bytes from the
-        browser's cryptographic generator.</li>
+        browser's cryptographic generator. The page shows it once and stores it nowhere: you save it, next to the original.</li>
       <li>What a proof reveals: the number of lines and which positions are hidden. Nothing else about the hidden lines.</li>
     </ul>
 
@@ -570,8 +574,8 @@
       <li><b>The root was not recorded before the redaction.</b> Then a proof only shows it agrees with itself (CONSISTENT).
         Record roots at intake.</li>
       <li><b>The secret is lost.</b> No new proofs can be made for that original; proofs already sent still verify.</li>
-      <li><b>The secret leaks.</b> Whoever holds it can test guesses at hidden lines, as with v1. The structure stays bound by
-        the root. Keep secrets with the originals.</li>
+      <li><b>The secret leaks.</b> Whoever holds it can test guesses at hidden lines, as with v1. Lines still cannot be added,
+        dropped, changed or folded together without the proof failing. Keep secrets with the originals.</li>
       <li><b>Part of a line is sensitive.</b> Split it onto its own line before you commit.</li>
       <li><b>Old v1 proofs.</b> They still check, with both faults named. Re-issue anything that matters as v2.</li>
     </ul>

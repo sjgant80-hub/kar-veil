@@ -194,7 +194,7 @@ $('btn-demo-run').addEventListener('click', async (e) => {
       const td = el('td'); td.append(el('b', c.held ? 'ok' : 'no', c.held ? 'HELD' : 'FAILED')); tr.append(td);
       tbody.append(tr);
     }
-    say('claims-note', m.held + ' of ' + m.of + ' claims held on ' + m.corpus.documents + ' documents (' + m.corpus.lines.toLocaleString('en-GB') + ' lines, ' + m.corpus.hiddenLines.toLocaleString('en-GB') + ' hidden), seed ' + m.seed + '. The v1 results in C4 and C5 are the faults reproduced, on purpose: they show the attacks have teeth.');
+    say('claims-note', m.held + ' of ' + m.of + ' claims held on ' + m.corpus.documents + ' documents (' + m.corpus.lines.toLocaleString('en-GB') + ' lines, ' + m.corpus.hiddenLines.toLocaleString('en-GB') + ' hidden), seed ' + m.seed + '. The v1 results in C4 and C5 are the faults reproduced, on purpose: they show the attacks have teeth. "Never throws" (C7) means it always answers with one of the four verdicts and never crashes, whatever it is given.');
   } catch { tbody.replaceChildren(el('tr')); tbody.rows[0].append(el('td', null, 'the receipt could not be read; open receipts/measure.json directly')); }
 })();
 
