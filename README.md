@@ -49,4 +49,4 @@ recorded *before* the redaction. It says nothing about whether the redaction was
 and reveals how many lines there are and which positions are hidden.
 
 Supplied by [AI Native Solutions](https://www.ai-nativesolutions.com); support terms are agreed per deployment.
-Built by **Kar** (karma-didy) on the FallForge estate. MIT. Powered by the Konomi architecture, created by Thomas Frumkin.
+Built by **Kar** for AI Native Solutions. MIT. Powered by the Konomi architecture, created by Thomas Frumkin.
